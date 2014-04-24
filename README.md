@@ -6,7 +6,7 @@ Read RIFF WAVE files as ndarrays.  In future, it will be able to write the data 
 
 ## Current limitations
 
-#1: It only reads 32-bit floating-point data right now.  This is pretty easy to fix, though, so if you need it just raise an issue and I'll put in any PCM type you like.
+It only reads 32-bit floating-point data right now.  This is pretty easy to fix, though, so if you need it just raise an issue and I'll put in any PCM type you like.
 
 ## API
 
