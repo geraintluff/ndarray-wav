@@ -1,0 +1,25 @@
+{
+  "name": "ndarray-wav",
+  "version": "0.0.0",
+  "description": "Read WAV files into ndarray",
+  "main": "ndarray-wav.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/geraintluff/ndarray-wav.git"
+  },
+  "keywords": [
+    "ndarray",
+    "riff",
+    "wav",
+    "wave"
+  ],
+  "author": "Geraint Luff",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/geraintluff/ndarray-wav/issues"
+  },
+  "homepage": "https://github.com/geraintluff/ndarray-wav"
+}
