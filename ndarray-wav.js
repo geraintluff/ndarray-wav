@@ -63,6 +63,18 @@ var writeWav = exports.write = function (wavFile, wavData, options, callback) {
 		options = {};
 	}
 	options = options || {};
+	var extraChunks = options.extraChunks || [];
+	var extraChunkLength = 0;
+	if (!Array.isArray(extraChunks)) {
+		var chunkMap = extraChunks;
+		extraChunks = [];
+		for (var key in chunkMap) {
+			extraChunks.push({id: key, data: chunkMap[key]});
+		}
+	}
+	extraChunks.forEach(function (chunk) {
+		extraChunkLength += 8 + chunk.data.length;
+	});
 	
 	var format = options.format || 3;
 	var bitsPerSample = options.bitsPerSample || 32;
@@ -70,7 +82,8 @@ var writeWav = exports.write = function (wavFile, wavData, options, callback) {
 	
 	var channels = wavData.shape[0];
 	var samples = wavData.shape[1];
-	var byteLength = 44 + samples*channels*bitsPerSample/8;
+	var byteLength = 44 + samples*channels*bitsPerSample/8 + extraChunkLength;
+	console.log([channels, samples, byteLength]);
 	
 	var bufferPos;
 	var buffer = new Buffer(byteLength);
@@ -86,16 +99,23 @@ var writeWav = exports.write = function (wavFile, wavData, options, callback) {
 	buffer.writeUInt32LE(sampleRate*channels*bitsPerSample/8, 28);
 	buffer.writeUInt16LE(channels*bitsPerSample/8, 32);
 	buffer.writeUInt16LE(bitsPerSample, 34);
+
+	bufferPos = 36;
+	extraChunks.forEach(function (chunk) {
+		buffer.write((chunk.id + '     ').substring(0, 4), bufferPos, 'ascii');
+		buffer.writeUInt32LE(chunk.data.length, bufferPos + 4);
+		bufferPos += 8 + chunk.data.length;
+	});
 	
 	// Data chunk
-	buffer.write('data', 36, 'ascii');
-	buffer.writeUInt32LE(byteLength - 44, 40);
-	bufferPos = 44;
-	
+	buffer.write('data', bufferPos, 'ascii');
+	buffer.writeUInt32LE(byteLength - bufferPos - 8, bufferPos + 4);
+	bufferPos += 8;
+		
 	if (format === 3) {
 		if (bitsPerSample === 32) {
-			for (var channelNum = 0; channelNum < channels; channelNum++) {
-				for (var sampleNum = 0; sampleNum < samples; sampleNum++) {
+			for (var sampleNum = 0; sampleNum < samples; sampleNum++) {
+				for (var channelNum = 0; channelNum < channels; channelNum++) {
 					var value = wavData.get(channelNum, sampleNum);
 					buffer.writeFloatLE(value, bufferPos);
 					bufferPos += 4;
@@ -134,7 +154,7 @@ exports.addChunkParser('data', function (buffer, chunks) {
 			for (var i = 0; i < samples; i++) {
 				typedArray[i] = buffer.readFloatLE(i*4);
 			}
-			var nd = ndarray(typedArray, [format.channels, samples/format.channels]);
+			var nd = ndarray(typedArray, [samples/format.channels, format.channels]).transpose(1, 0);
 			return nd;
 		} else {
 			throw new Error('Unsupported bit depth: ' + format.bitsPerSample);
