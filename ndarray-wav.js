@@ -57,6 +57,60 @@ var openWav = exports.open = function (wavData, callback) {
 	callback(null, chunkDict, chunkArray);
 };
 
+var writeWav = exports.write = function (wavFile, wavData, options, callback) {
+	if (typeof options === 'function') {
+		callback = options;
+		options = {};
+	}
+	options = options || {};
+	
+	var format = options.format || 3;
+	var bitsPerSample = options.bitsPerSample || 32;
+	var sampleRate = options.sampleRate || 44100;
+	
+	var channels = wavData.shape[0];
+	var samples = wavData.shape[1];
+	var byteLength = 44 + samples*channels*bitsPerSample/8;
+	
+	var bufferPos;
+	var buffer = new Buffer(byteLength);
+	buffer.write('RIFF', 0, 'ascii');
+	buffer.writeUInt32LE(byteLength - 8, 4);
+	buffer.write('WAVE', 8, 'ascii');
+	// Format chunk
+	buffer.write('fmt ', 12, 'ascii');
+	buffer.writeUInt32LE(16, 16);
+	buffer.writeUInt16LE(format, 20);
+	buffer.writeUInt16LE(channels, 22);
+	buffer.writeUInt32LE(sampleRate, 24);
+	buffer.writeUInt32LE(sampleRate*channels*bitsPerSample/8, 28);
+	buffer.writeUInt16LE(channels*bitsPerSample/8, 32);
+	buffer.writeUInt16LE(bitsPerSample, 34);
+	
+	// Data chunk
+	buffer.write('data', 36, 'ascii');
+	buffer.writeUInt32LE(byteLength - 44, 40);
+	bufferPos = 44;
+	
+	if (format === 3) {
+		if (bitsPerSample === 32) {
+			for (var channelNum = 0; channelNum < channels; channelNum++) {
+				for (var sampleNum = 0; sampleNum < samples; sampleNum++) {
+					var value = wavData.get(channelNum, sampleNum);
+					buffer.writeFloatLE(value, bufferPos);
+					bufferPos += 4;
+				}
+			}
+		} else {
+			throw new Error('Unsupported bit depth for write: ' + bitsPerSample);
+		}
+	} else {
+		throw new Error('Unsupported sample format for write: ' + format);
+	}
+	
+	fs.writeFile(wavFile, buffer, callback);
+};
+
 //Built-in format parser
 // Written based on documentation at https://ccrma.stanford.edu/courses/422/projects/WaveFormat/
 exports.addChunkParser('fmt ', function (buffer, chunks) {
@@ -83,7 +137,7 @@ exports.addChunkParser('data', function (buffer, chunks) {
 			var nd = ndarray(typedArray, [format.channels, samples/format.channels]);
 			return nd;
 		} else {
-			throw new Error('Unsupported sample format: ' + format.format);
+			throw new Error('Unsupported bit depth: ' + format.bitsPerSample);
 		}
 	} else {
 		throw new Error('Unsupported sample format: ' + format.format);
