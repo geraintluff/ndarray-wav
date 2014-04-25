@@ -83,7 +83,6 @@ var writeWav = exports.write = function (wavFile, wavData, options, callback) {
 	var channels = wavData.shape[0];
 	var samples = wavData.shape[1];
 	var byteLength = 44 + samples*channels*bitsPerSample/8 + extraChunkLength;
-	console.log([channels, samples, byteLength]);
 	
 	var bufferPos;
 	var buffer = new Buffer(byteLength);
