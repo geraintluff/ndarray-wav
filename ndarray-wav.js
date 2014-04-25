@@ -76,13 +76,14 @@ var writeWav = exports.write = function (wavFile, wavData, options, callback) {
 		extraChunkLength += 8 + chunk.data.length;
 	});
 	
-	var format = options.format || 3;
-	var bitsPerSample = options.bitsPerSample || 32;
+	var format = options.format || 1;
+	var bitsPerSample = options.bitsPerSample || (format === 3 ? 32 : 16);
 	var sampleRate = options.sampleRate || 44100;
 	
 	var channels = wavData.shape[0];
 	var samples = wavData.shape[1];
 	var byteLength = 44 + samples*channels*bitsPerSample/8 + extraChunkLength;
+	console.log([channels, samples, byteLength]);
 	
 	var bufferPos;
 	var buffer = new Buffer(byteLength);
@@ -110,8 +111,30 @@ var writeWav = exports.write = function (wavFile, wavData, options, callback) {
 	buffer.write('data', bufferPos, 'ascii');
 	buffer.writeUInt32LE(byteLength - bufferPos - 8, bufferPos + 4);
 	bufferPos += 8;
-		
-	if (format === 3) {
+	
+	if (format === 1) {
+		if (bitsPerSample == 16) {
+			for (var sampleNum = 0; sampleNum < samples; sampleNum++) {
+				for (var channelNum = 0; channelNum < channels; channelNum++) {
+					var value = wavData.get(channelNum, sampleNum);
+					if (value > 1) {
+						value = 32767
+					} else if (value <= -1) {
+						value = 32768;
+					} else {
+						value = Math.round(value*32768);
+						if (value < 0) {
+							value += 65536;
+						}
+					}
+					buffer.writeUInt16LE(value, bufferPos);
+					bufferPos += 2;
+				}
+			}
+		} else {
+			throw new Error('Unsupported bit depth for write: ' + bitsPerSample);
+		}
+	} else if (format === 3) {
 		if (bitsPerSample === 32) {
 			for (var sampleNum = 0; sampleNum < samples; sampleNum++) {
 				for (var channelNum = 0; channelNum < channels; channelNum++) {
@@ -145,7 +168,23 @@ exports.addChunkParser('fmt ', function (buffer, chunks) {
 
 exports.addChunkParser('data', function (buffer, chunks) {
 	var format = chunks.fmt;
-	if (format.format === 3) {
+	if (format.format === 1) {
+		var samples = buffer.length*8/format.bitsPerSample;
+		if (format.bitsPerSample == 16) {
+			var typedArray = new Float32Array(samples);
+			for (var i = 0; i < samples; i++) {
+				var sample = buffer.readUInt16LE(i*2);
+				if (sample > 32767) {
+					sample -= 65536;
+				}
+				typedArray[i] = sample/32768;
+			}
+			var nd = ndarray(typedArray, [samples/format.channels, format.channels]).transpose(1, 0);
+			return nd;
+		} else {
+			throw new Error('Unsupported bit depth: ' + format.bitsPerSample);
+		}
+	} else if (format.format === 3) {
 		// IEEE float
 		var samples = buffer.length*8/format.bitsPerSample;
 		if (format.bitsPerSample == 32) {

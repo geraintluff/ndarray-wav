@@ -1,31 +1,62 @@
 # ndarray-wav
 
-Read RIFF WAVE files as ndarrays.  In future, it will be able to write the data back to .WAVs again.
-
-**WARNING** - it's not exactly ready for wide use, because I'm just developing it for myself.
+Read/write RIFF WAVE files as ndarrays.
 
 ## Current limitations
 
-It only reads 32-bit floating-point data right now.  This is pretty easy to fix, though, so if you need it just raise an issue and I'll put in any PCM type you like.
+It only reads a small set of sample formats:
+* 16-bit linear (CD standard)
+* 32-bit IEEE floating-point
+
+Adding new (uncompressed) sample formats is relatively easy, though, so if you need one just raise an issue on GitHub and I'll put in.
 
 ## API
+
+### Reading
 
 ```javascript
 var ndarrayWav = require('ndarray-wav');
 
 ndarrayWav.open('input.wav', function (err, chunkMap, chunkArr) {
     var format = chunks.fmt;
-    var arr = chunks.data;
-    assert(format.channels == arr.shape[0]);
+    var ndSamples = chunks.data; // the wave data as an ndarray
+    assert(format.channels == ndSamples.shape[0]);
     var numSamples = arr.shape[1];
 });
 ```
 
-### What?  "Chunks"?
+Regardless of the sample format of the WAV file itself, the data is always returned as floating-point.
 
-WAV files are organised into chunks.  Each is labelled with a four-character ID (the main ones being `"fmt "` or `"data"`).
+### Writing
 
-This ID is stripped of whitespace and placed in `chunkMap` (second argument in callback).  Additionally, `chunkArr` is an array that holds the same chunks in the order they appeared in the file.
+```javascript
+ndarrayWav.write('output.wav', ndSamples, format, function (error) {...});
+```
+
+In the `write()` method, `format` is optional.  If omitted, it defaults to 44100Hz. 16-bit audio.
+
+The structure of `format` is the same as `chunkMap.fmt` when you read:
+
+```javascript
+var format = {
+	sampleRate: 44100,
+	format: 1, // 1 is the default "linear" format (two's complement integer), 3 is floating-point.
+	bitsPerSample: 16, //
+	extraChunks: {...}
+};
+```
+
+All properties are optional.
+
+## What's all this about "chunks"?
+
+WAV files are organised into chunks.  Each is labelled with a four-character ID - the main ones are `"fmt "` and `"data"`.
+
+When reading, this ID is stripped of whitespace and placed in `chunkMap` (second argument in callback).  Additionally, `chunkArr` is an array that holds the same chunks in the order they appeared in the file (where each entry has two keys `"id"` and `"data"`).
+
+There are built-in parsers for `fmt` and `data` chunks.  This means that the format will always be available (parsed) as `chunkMap.fmt`, and the wave data is in `chunkMap.data`.
+
+When writing `extraChunks` can contain additional chunks to write (e.g. `bext`).  It can be an object (like `chunkMap`) that maps IDs to Buffers, or if order is important it can be an array (like `chunkArr`).
 
 ### Chunk parsers
 
