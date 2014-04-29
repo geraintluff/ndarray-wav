@@ -117,7 +117,7 @@ var writeWav = exports.write = function (wavFile, wavData, options, callback) {
 			for (var sampleNum = 0; sampleNum < samples; sampleNum++) {
 				for (var channelNum = 0; channelNum < channels; channelNum++) {
 					var value = wavData.get(channelNum, sampleNum);
-					if (value > 1) {
+					if (value >= 1) {
 						value = 32767
 					} else if (value <= -1) {
 						value = 32768;
