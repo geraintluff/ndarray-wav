@@ -181,6 +181,17 @@ exports.addChunkParser('data', function (buffer, chunks) {
 			}
 			var nd = ndarray(typedArray, [samples/format.channels, format.channels]).transpose(1, 0);
 			return nd;
+		} else if (format.bitsPerSample == 24) {
+			var typedArray = new Float32Array(samples);
+			for (var i = 0; i < samples; i++) {
+				var sample = buffer.readUInt16LE(i*3) + buffer.readUInt8(i*3 + 2)*65536;
+				if (sample > 8388607) {
+					sample -= 16777216;
+				}
+				typedArray[i] = sample/8388608;
+			}
+			var nd = ndarray(typedArray, [samples/format.channels, format.channels]).transpose(1, 0);
+			return nd;
 		} else {
 			throw new Error('Unsupported bit depth: ' + format.bitsPerSample);
 		}
