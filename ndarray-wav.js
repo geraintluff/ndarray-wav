@@ -32,7 +32,8 @@ var openWav = exports.open = function (wavData, callback) {
 	pos = 12;
 
 	var chunkArray = [], chunkDict = {};
-	while (pos < wavData.length) {
+	// Ensure that there is atleast 8 bytes more to read the size from.
+	while (pos + 4 < wavData.length) {
 		var size = wavData.readUInt32LE(pos + 4);
 		var subChunk = {
 			id: wavData.slice(pos, pos + 4).toString('ascii'),
