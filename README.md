@@ -2,10 +2,11 @@
 
 Read/write RIFF WAVE files as ndarrays.
 
-## Current limitations
+## Supported formats
 
-It only reads a small set of sample formats:
+Currently supported formats (for read and write) are:
 * 16-bit linear (CD standard)
+* 24-bit linear (CD standard)
 * 32-bit IEEE floating-point
 
 Adding new (uncompressed) sample formats is relatively easy, though, so if you need one just raise an issue on GitHub and I'll put in.
@@ -71,3 +72,7 @@ ndarrayWav.addChunkParser('bext', function (buffer) {
 You can register more than one parser for a particular type of chunk.  If you return something true-ish, then it stops, otherwise it continues.  Parsers are tried in reverse order (most recently-registered first).
 
 This is actually the mechanism that is used to parse the format and wave data (`fmt` and `data`).
+
+## Thanks
+
+Thanks to Chinmay Pendharkar [(notthetup)](https://github.com/notthetup) for 24-bit write support plus some other details.
