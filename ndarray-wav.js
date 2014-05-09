@@ -131,6 +131,37 @@ var writeWav = exports.write = function (wavFile, wavData, options, callback) {
 					bufferPos += 2;
 				}
 			}
+		} else if (bitsPerSample == 24) {
+			for (var sampleNum = 0; sampleNum < samples; sampleNum++) {
+				for (var channelNum = 0; channelNum < channels; channelNum++) {
+					var value = wavData.get(channelNum, sampleNum);
+					if (value >= 1) {
+						value = 8388607
+					} else if (value <= -1) {
+						value = 8388608;
+					} else {
+						value = value*8388608;
+						if (value < 0) {
+							value += 16777216;
+						}
+					}
+
+					if (sampleNum < samples - 1){
+						// Hack! Write 24bits by writing 32bits but incrementing 
+						// offset by only 3bytes. Avoiding the calculating the
+						// 16 and 8 bit writes helps to reduce the quantization errors.
+						buffer.writeUInt32LE(Math.round(value), bufferPos);
+						bufferPos += 3;
+					}else{
+						// For the last index, we can't use the hack, since there isn't
+						// a 4th byte to overflow into.
+						buffer.writeUInt16LE(Math.round(value%65536), bufferPos);
+						bufferPos += 2;
+						buffer.writeUInt8(Math.round(value/65536), bufferPos, true);
+						bufferPos += 1;
+					}
+				}
+			}
 		} else {
 			throw new Error('Unsupported bit depth for write: ' + bitsPerSample);
 		}
