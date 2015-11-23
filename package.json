@@ -1,6 +1,6 @@
 {
   "name": "ndarray-wav",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Read WAV files into ndarray",
   "main": "ndarray-wav.js",
   "scripts": {
@@ -21,5 +21,8 @@
   "bugs": {
     "url": "https://github.com/geraintluff/ndarray-wav/issues"
   },
-  "homepage": "https://github.com/geraintluff/ndarray-wav"
+  "homepage": "https://github.com/geraintluff/ndarray-wav",
+  "dependencies": {
+    "ndarray": "^1.0.18"
+  }
 }
